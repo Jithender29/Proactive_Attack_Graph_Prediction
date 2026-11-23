@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Checkout – Mini Amazon{% endblock %}
+{% block content %}
+<div class="checkout-layout">
+    <div class="checkout-steps-col">
+        <h1 class="checkout-page-title">Checkout</h1>
+
+        <!-- Step 1: Address -->
+        <div class="checkout-section-box">
+            <div class="checkout-step-number">1</div>
+            <div class="checkout-step-content">
+                <h3>Delivery Address</h3>
+                <p><strong>{{ user.username if user else "Demo Customer" }}</strong></p>
+                <p>123 Innovation Way, Suite 400</p>
+                <p>Silicon Valley, CA 94025, United States</p>
+            </div>
+        </div>
+
+        <!-- Step 2: Payment Method -->
+        <div class="checkout-section-box">
+            <div class="checkout-step-number">2</div>
+            <div class="checkout-step-content">
+                <h3>Payment Method</h3>
+                <p>💳 <strong>Demo Synthetic Visa</strong> ending in <strong>4242</strong></p>
+                <p class="subtext">Simulated transaction &bull; No real money or payment gateway charged</p>
+            </div>
+        </div>
+
+        <!-- Step 3: Review Items -->
+        <div class="checkout-section-box">
+            <div class="checkout-step-number">3</div>
+            <div class="checkout-step-content">
+                <h3>Review Items and Shipping</h3>
+                <div class="checkout-items-list">
+                    {% for i in items %}
+                    <div class="checkout-item-line">
+                        <div class="checkout-item-title">
+                            <strong>{{ i.product.title }}</strong>
+                            <span class="checkout-item-qty">Qty: {{ i.qty }}</span>
+                        </div>
+                        <div class="checkout-item-price">
+                            ${{ "%.2f"|format(i.total) }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Sidebar: Order Summary -->
+    <div class="checkout-summary-col">
+        <div class="summary-box">
+            <button class="place-order-btn" onclick="placeOrder()">Place your order</button>
+            <p class="summary-disclaimer">By placing your order, you agree to Mini Amazon's simulated terms of use.</p>
+            <hr class="summary-divider">
+
+            <h3>Order Summary</h3>
+            <div class="summary-line">
+                <span>Items:</span>
+                <span>${{ "%.2f"|format(subtotal) }}</span>
+            </div>
+            <div class="summary-line">
+                <span>Shipping &amp; handling:</span>
+                <span>$0.00</span>
+            </div>
+            <div class="summary-line">
+                <span>Estimated tax:</span>
+                <span>$0.00</span>
+            </div>
+            <hr class="summary-divider">
+            <div class="summary-total-line">
+                <span>Order total:</span>
+                <span class="total-amount">${{ "%.2f"|format(subtotal) }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

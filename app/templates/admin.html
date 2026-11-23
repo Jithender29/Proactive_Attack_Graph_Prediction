@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Admin Inventory Dashboard – Mini Amazon{% endblock %}
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>⚙️ Store Administration &amp; Inventory</h1>
+        <p>Real-time monitor of product catalog, stock levels, and category distribution.</p>
+    </div>
+
+    <div class="admin-stats-row">
+        <div class="stat-card">
+            <div class="stat-val">{{ products|length }}</div>
+            <div class="stat-label">Total Products</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val">{{ categories|length }}</div>
+            <div class="stat-label">Categories</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-val">
+                {% set low_count = 0 %}
+                {% for p in products %}
+                {% if p.stock < 10 %}{% set low_count=low_count + 1 %}{% endif %} {% endfor %} {{ low_count }} </div>
+                    <div class="stat-label">Low Stock Alerts</div>
+            </div>
+        </div>
+
+        <div class="admin-table-card">
+            <table class="inventory-table">
+                <thead>
+                    <tr>
+                        <th>SKU ID</th>
+                        <th>Product Title</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Inventory Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in products %}
+                    <tr>
+                        <td>#{{ p.id }}</td>
+                        <td>
+                            <a href="/products/{{ p.id }}" class="admin-prod-link">{{ p.title }}</a>
+                        </td>
+                        <td><span class="cat-badge">{{ p.category.name if p.category else "Unassigned" }}</span></td>
+                        <td>${{ "%.2f"|format(p.price) }}</td>
+                        <td>
+                            {% if p.stock <= 0 %} <span class="stock-pill pill-danger">Out of Stock (0)</span>
+                                {% elif p.stock < 10 %} <span class="stock-pill pill-warning">Low ({{ p.stock }})</span>
+                                    {% else %}
+                                    <span class="stock-pill pill-good">Healthy ({{ p.stock }})</span>
+                                    {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endblock %}

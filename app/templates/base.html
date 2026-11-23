@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mini Amazon{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/script.js" defer></script>
+</head>
+
+<body>
+    <header class="navbar">
+        <div class="brand">
+            <a href="/">🛒 <span class="brand-text">mini<strong>amazon</strong></span></a>
+        </div>
+
+        <form class="search-bar" action="/products" method="get">
+            <select name="category" aria-label="Select Category">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if selected_category|string==cat.id|string %}selected{% endif %}>{{
+                    cat.name }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" name="q" value="{{ search_query or '' }}"
+                placeholder="Search products, brands and deals..." />
+            <button type="submit" aria-label="Search">🔍</button>
+        </form>
+
+        <nav class="nav-links">
+            {% if user %}
+            <a href="/profile" class="nav-item">
+                <span class="nav-sub">Hello,</span>
+                <span class="nav-main">{{ user.username }}</span>
+            </a>
+            {% if user.is_admin %}
+            <a href="/admin" class="nav-item">
+                <span class="nav-sub">Portal</span>
+                <span class="nav-main">Admin</span>
+            </a>
+            {% endif %}
+            <a href="/orders" class="nav-item">
+                <span class="nav-sub">Returns</span>
+                <span class="nav-main">&amp; Orders</span>
+            </a>
+            <form method="post" action="/logout" style="display:inline;">
+                <button type="submit" class="logout-btn">Sign Out</button>
+            </form>
+            {% else %}
+            <a href="/login" class="nav-item">
+                <span class="nav-sub">Hello, sign in</span>
+                <span class="nav-main">Account &amp; Lists</span>
+            </a>
+            <a href="/orders" class="nav-item">
+                <span class="nav-sub">Returns</span>
+                <span class="nav-main">&amp; Orders</span>
+            </a>
+            {% endif %}
+
+            <a href="/cart" class="cart-pill-link">
+                <span class="cart-icon">🛒</span>
+                <span class="cart-badge" id="cart-count">{{ cart_count if cart_count is defined else 0 }}</span>
+                <span class="cart-label">Cart</span>
+            </a>
+        </nav>
+    </header>
+
+    <nav class="sub-nav">
+        <a href="/products" class="sub-link {% if not selected_category %}active{% endif %}">☰ All Deals</a>
+        {% for cat in categories %}
+        <a href="/products?category={{ cat.id }}"
+            class="sub-link {% if selected_category|string == cat.id|string %}active{% endif %}">
+            {{ cat.name }}
+        </a>
+        {% endfor %}
+    </nav>
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="footer-top">
+            <a href="#top" class="back-to-top"
+                onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;">Back to top</a>
+        </div>
+        <div class="footer-links">
+            <div class="footer-col">
+                <h4>Get to Know Us</h4>
+                <p>About Mini Amazon</p>
+                <p>Careers &amp; News</p>
+                <p>Press Releases</p>
+            </div>
+            <div class="footer-col">
+                <h4>Make Money with Us</h4>
+                <p>Sell on Mini Amazon</p>
+                <p>Supply to Amazon</p>
+                <p>Affiliate Program</p>
+            </div>
+            <div class="footer-col">
+                <h4>Payment Products</h4>
+                <p>Mini Amazon Business Card</p>
+                <p>Shop with Points</p>
+                <p>Reload Your Balance</p>
+            </div>
+            <div class="footer-col">
+                <h4>Let Us Help You</h4>
+                <p>Your Account &amp; Orders</p>
+                <p>Shipping Rates &amp; Policies</p>
+                <p>Help &amp; Customer Care</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Mini Amazon Storefront &bull; Simulated e-commerce demonstration environment &bull; Purely
+                synthetic catalog data</p>
+        </div>
+    </footer>
+</body>
+
+</html>

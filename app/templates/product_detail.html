@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}{{ product.title }} – Mini Amazon{% endblock %}
+{% block content %}
+<div class="breadcrumb">
+    <a href="/">Home</a> &rsaquo;
+    {% if product.category %}
+    <a href="/products?category={{ product.category.id }}">{{ product.category.name }}</a> &rsaquo;
+    {% endif %}
+    <span>{{ product.title }}</span>
+</div>
+
+<div class="product-detail-layout">
+    <!-- Left: Visual Column -->
+    <div class="detail-gallery">
+        <div class="detail-img-box">
+            {% if product.category and 'Electronics' in product.category.name %}
+            <span class="detail-emoji">🎧</span>
+            {% elif product.category and 'Home' in product.category.name %}
+            <span class="detail-emoji">☕</span>
+            {% elif product.category and 'Books' in product.category.name %}
+            <span class="detail-emoji">📚</span>
+            {% elif product.category and 'Fashion' in product.category.name %}
+            <span class="detail-emoji">🎒</span>
+            {% elif product.category and 'Fitness' in product.category.name %}
+            <span class="detail-emoji">🧘</span>
+            {% else %}
+            <span class="detail-emoji">📦</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Center: Info Column -->
+    <div class="detail-center">
+        <h1 class="detail-title">{{ product.title }}</h1>
+        <p class="detail-brand">Category: <strong>{{ product.category.name if product.category else "Everyday"
+                }}</strong></p>
+
+        <div class="detail-rating">
+            <span class="stars">⭐⭐⭐⭐⭐</span>
+            <span class="rating-text">{{ "%.1f"|format(product.rating) }} out of 5 stars</span>
+        </div>
+
+        <hr class="detail-divider">
+
+        <div class="detail-price-box">
+            <span class="price-symbol">$</span>
+            <span class="price-val">{{ "%.2f"|format(product.price) }}</span>
+            <span class="free-shipping-tag">FREE delivery on demo order</span>
+        </div>
+
+        <div class="detail-description">
+            <h3>About this item</h3>
+            <p>{{ product.description }}</p>
+            <ul class="detail-bullets">
+                <li>Engineered with premium, long-lasting materials and modern design.</li>
+                <li>Fully compatible with everyday home, personal, and professional workflows.</li>
+                <li>Backed by our 30-day simulated satisfaction guarantee.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Right: Purchase Card -->
+    <div class="detail-buy-box">
+        <div class="buy-box-price">${{ "%.2f"|format(product.price) }}</div>
+        <p class="buy-box-shipping">✓ <strong>FREE delivery</strong> simulated</p>
+
+        <div
+            class="stock-status-large {% if product.stock <= 0 %}out-of-stock{% elif product.stock < 10 %}low-stock{% endif %}">
+            {% if product.stock > 10 %}
+            In Stock.
+            {% elif product.stock > 0 %}
+            Only {{ product.stock }} left in stock - order soon.
+            {% else %}
+            Currently unavailable.
+            {% endif %}
+        </div>
+
+        {% if product.stock > 0 %}
+        <div class="qty-selector-group">
+            <label for="detail-qty">Quantity:</label>
+            <select id="detail-qty">
+                {% for n in range(1, [product.stock + 1, 10]|min) %}
+                <option value="{{ n }}">{{ n }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button class="add-to-cart-btn primary-action"
+            data-product-id="{{ product.id }}"
+            onclick="addToCart(this.dataset.productId, document.getElementById('detail-qty').value)">
+            Add to Cart
+        </button>
+        <button class="buy-now-btn"
+            data-product-id="{{ product.id }}"
+            onclick="buyNow(this.dataset.productId, document.getElementById('detail-qty').value)">
+            Buy Now
+        </button>
+        {% else %}
+        <button class="add-to-cart-btn disabled" disabled>Currently Unavailable</button>
+        {% endif %}
+
+        <div class="security-note">
+            🔒 Secure transaction (synthetic simulation)
+        </div>
+    </div>
+</div>
+{% endblock %}

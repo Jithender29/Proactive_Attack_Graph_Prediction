@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Shopping Cart – Mini Amazon{% endblock %}
+{% block content %}
+<div class="cart-container">
+    <div class="cart-main-col">
+        <div class="cart-header">
+            <h2>Shopping Cart</h2>
+            <span class="price-header">Price</span>
+        </div>
+
+        {% if items %}
+        <div class="cart-items-list">
+            {% for i in items %}
+            <div class="cart-item-row">
+                <div class="cart-item-img">
+                    {% if i.product.category and 'Electronics' in i.product.category.name %}
+                        <span>🎧</span>
+                    {% elif i.product.category and 'Home' in i.product.category.name %}
+                        <span>☕</span>
+                    {% elif i.product.category and 'Books' in i.product.category.name %}
+                        <span>📚</span>
+                    {% elif i.product.category and 'Fashion' in i.product.category.name %}
+                        <span>🎒</span>
+                    {% elif i.product.category and 'Fitness' in i.product.category.name %}
+                        <span>🧘</span>
+                    {% else %}
+                        <span>📦</span>
+                    {% endif %}
+                </div>
+
+                <div class="cart-item-details">
+                    <h3 class="cart-item-title">
+                        <a href="/products/{{ i.product.id }}">{{ i.product.title }}</a>
+                    </h3>
+                    <p class="stock-status-sm">✓ In Stock</p>
+                    <p class="cart-item-shipping">Eligible for FREE Shipping</p>
+
+                    <div class="cart-item-controls">
+                        <label>Qty:
+                            <input type="number" value="{{ i.quantity }}" min="1" max="{{ i.product.stock }}"
+                                   data-product-id="{{ i.product.id }}"
+                                   onchange="updateCart(this.dataset.productId, this.value)" class="qty-field" />
+                        </label>
+                        <span class="control-separator">|</span>
+                        <button class="cart-action-btn delete-btn" data-product-id="{{ i.product.id }}" onclick="removeFromCart(this.dataset.productId)">Delete</button>
+                        <span class="control-separator">|</span>
+                        <a href="/products/{{ i.product.id }}" class="cart-action-btn">View details</a>
+                    </div>
+                </div>
+
+                <div class="cart-item-price-col">
+                    <span class="cart-item-price">${{ "%.2f"|format(i.product.price) }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="cart-subtotal-bar">
+            Subtotal ({{ items|length }} unique item{% if items|length > 1 %}s{% endif %}):
+            <strong>${{ "%.2f"|format(subtotal) }}</strong>
+        </div>
+        {% else %}
+        <div class="empty-cart-view">
+            <span class="empty-cart-icon">🛒</span>
+            <h3>Your Mini Amazon Cart is empty</h3>
+            <p>Your shopping cart is waiting. Give it purpose — fill it with electronics, books, accessories, and more.</p>
+            <a href="/products" class="primary-btn">Explore Today's Deals</a>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if items %}
+    <div class="cart-sidebar">
+        <div class="checkout-card">
+            <div class="free-shipping-check">
+                <span>✓</span> Your order qualifies for <strong>FREE Shipping</strong>.
+            </div>
+            <div class="sidebar-subtotal">
+                Subtotal: <strong>${{ "%.2f"|format(subtotal) }}</strong>
+            </div>
+            <a href="/checkout" class="proceed-checkout-btn">Proceed to Checkout</a>
+            <a href="/products" class="continue-shopping-link">← Continue Shopping</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

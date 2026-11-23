@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Your Orders – Mini Amazon{% endblock %}
+{% block content %}
+<div class="orders-container">
+    <div class="orders-header">
+        <h1>Your Orders</h1>
+        <p class="orders-subtext">View and track past simulated orders for <strong>{{ user.username if user else "your
+                account" }}</strong></p>
+    </div>
+
+    {% if orders %}
+    <div class="orders-list">
+        {% for o in orders %}
+        <div class="order-card">
+            <div class="order-card-header">
+                <div class="order-header-info">
+                    <span class="order-header-label">ORDER PLACED</span>
+                    <span class="order-header-val">{{ o.created_at.strftime('%B %d, %Y') if o.created_at else 'Recent'
+                        }}</span>
+                </div>
+                <div class="order-header-info">
+                    <span class="order-header-label">TOTAL</span>
+                    <span class="order-header-val">${{ "%.2f"|format(o.total) }}</span>
+                </div>
+                <div class="order-header-info">
+                    <span class="order-header-label">SHIP TO</span>
+                    <span class="order-header-val">{{ user.username if user else "Customer" }}</span>
+                </div>
+                <div class="order-header-number">
+                    <span class="order-header-label">ORDER # {{ o.id }}</span>
+                </div>
+            </div>
+
+            <div class="order-card-body">
+                <div class="order-status-badge">✓ Delivered (Simulated)</div>
+                <div class="order-items-table">
+                    {% for item in o.items %}
+                    <div class="order-item-row">
+                        <div class="order-item-icon">📦</div>
+                        <div class="order-item-desc">
+                            <h4>{{ item.product.title if item.product else "Product #" ~ item.product_id }}</h4>
+                            <p>Quantity: {{ item.quantity }} &bull; Price: ${{ "%.2f"|format(item.price) }} each</p>
+                        </div>
+                        <div class="order-item-actions">
+                            <a href="/products/{{ item.product_id }}" class="reorder-link">View Item</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-orders-view">
+        <span class="empty-icon">📦</span>
+        <h3>No past orders found</h3>
+        <p>Looking for a past order? When you place an order, it will appear here.</p>
+        <a href="/products" class="primary-btn">Start Shopping</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

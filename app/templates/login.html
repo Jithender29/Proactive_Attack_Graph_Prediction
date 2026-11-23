@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Sign-In – Mini Amazon{% endblock %}
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card">
+        <h2>Sign-In</h2>
+
+        {% if error %}
+        <div class="error-alert">
+            <span class="alert-icon">⚠️</span>
+            <span class="alert-text">{{ error }}</span>
+        </div>
+        {% endif %}
+
+        <form method="post" action="/login" class="login-form">
+            <label for="username">Email or mobile phone number</label>
+            <input type="text" id="username" name="username" required autocomplete="username"
+                placeholder="Username (e.g. demo_user)" />
+
+            <div class="label-row">
+                <label for="password">Password</label>
+            </div>
+            <input type="password" id="password" name="password" required autocomplete="current-password"
+                placeholder="Password" />
+
+            <button type="submit" class="auth-submit-btn">Continue</button>
+        </form>
+
+        <p class="auth-legal">
+            By continuing, you agree to Mini Amazon's simulated Conditions of Use and Privacy Notice.
+        </p>
+
+        <hr class="auth-divider">
+
+        <div class="demo-quick-login">
+            <p class="demo-label">⚡ <strong>One-Click Demo Credentials:</strong></p>
+            <div class="quick-btn-group">
+                <button type="button" class="quick-fill-btn" onclick="quickFill('demo_user', 'demo123')">
+                    Fill Customer (demo_user)
+                </button>
+                <button type="button" class="quick-fill-btn" onclick="quickFill('admin', 'admin123')">
+                    Fill Admin (admin)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function quickFill(user, pass) {
+        document.getElementById('username').value = user;
+        document.getElementById('password').value = pass;
+    }
+</script>
+{% endblock %}

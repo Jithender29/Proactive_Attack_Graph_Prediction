@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Your Account – Mini Amazon{% endblock %}
+{% block content %}
+<div class="profile-container">
+    <h1>Your Account</h1>
+
+    <div class="account-grid">
+        <a href="/orders" class="account-tile">
+            <div class="tile-icon">📦</div>
+            <div class="tile-text">
+                <h3>Your Orders</h3>
+                <p>Track, return, or buy things again</p>
+            </div>
+        </a>
+
+        <div class="account-tile static-tile">
+            <div class="tile-icon">🔒</div>
+            <div class="tile-text">
+                <h3>Login &amp; Security</h3>
+                <p>Username: <strong>{{ user.username }}</strong></p>
+                <p>Role: <strong>{{ "Administrator" if user.is_admin else "Customer" }}</strong></p>
+            </div>
+        </div>
+
+        <a href="/cart" class="account-tile">
+            <div class="tile-icon">🛒</div>
+            <div class="tile-text">
+                <h3>Your Shopping Cart</h3>
+                <p>View saved items and checkout</p>
+            </div>
+        </a>
+
+        {% if user.is_admin %}
+        <a href="/admin" class="account-tile admin-highlight">
+            <div class="tile-icon">⚙️</div>
+            <div class="tile-text">
+                <h3>Admin Management</h3>
+                <p>View stock and inventory dashboard</p>
+            </div>
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="profile-footer-action">
+        <form method="post" action="/logout">
+            <button type="submit" class="secondary-btn">Sign Out of All Sessions</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
