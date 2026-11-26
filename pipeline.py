@@ -29,10 +29,46 @@ def read_events(db_path=DB_PATH, limit=1000):
     try:
         cols = [r[1] for r in con.execute("PRAGMA table_info(events)").fetchall()]
         if not cols: return []
-        rows = con.execute("SELECT * FROM events ORDER BY timestamp DESC LIMIT ?", (limit,)).fetchall()
-        return [dict(r) for r in reversed(rows)]
+        if limit is None:
+            query = "SELECT * FROM events ORDER BY timestamp ASC"
+            params = ()
+        else:
+            query = "SELECT * FROM events ORDER BY timestamp DESC LIMIT ?"
+            params = (limit,)
+        rows = con.execute(query, params).fetchall()
+        if limit is not None:
+            rows.reverse()
+        return [dict(r) for r in rows]
     except Exception as exc:
         print(f"[DB] Could not read events table: {exc}")
+        return []
+    finally:
+        con.close()
+
+def read_session_events(db_path, actor):
+    import sqlite3
+    if not Path(db_path).exists():
+        return []
+    con = sqlite3.connect(str(db_path))
+    con.row_factory = sqlite3.Row
+    try:
+        cols = [r[1] for r in con.execute("PRAGMA table_info(events)").fetchall()]
+        if not cols: return []
+        identity_columns = [
+            name for name in ("session_fingerprint", "session_id", "ip", "client_ip")
+            if name in cols
+        ]
+        if identity_columns:
+            identity = "COALESCE({}, 'unknown')".format(
+                ", ".join("CAST({} AS TEXT)".format(name) for name in identity_columns)
+            )
+        else:
+            identity = "'unknown'"
+        query = "SELECT * FROM events WHERE {} = ? ORDER BY timestamp ASC".format(identity)
+        rows = con.execute(query, (str(actor),)).fetchall()
+        return [dict(row) for row in rows]
+    except Exception as exc:
+        print(f"[DB] Could not read session events: {exc}")
         return []
     finally:
         con.close()
@@ -48,10 +84,11 @@ def train_all():
     print("\n========== TRAIN LSTM ========="); train_lstm()
     print("\n[OK] GNN and LSTM training complete.")
 
-def monitor_graph_and_sequence(rows):
-    if not rows: return
+def monitor_graph_and_sequence(rows, display=True):
+    if not rows: return []
     gnn = load_gnn()
     lstm, categories, seq_len = load_lstm()
+    reports = []
     # Group recent event records by session fingerprint, falling back to IP.
     groups = defaultdict(list)
     for r in rows:
@@ -79,10 +116,22 @@ def monitor_graph_and_sequence(rows):
         for i in range(n-1): adj[i, i+1] = adj[i+1, i] = 1
         scores = score_graph(gnn, np.asarray(x, dtype=np.float32), adj)
         route, confidence = predict_next(lstm, categories, routes)
-        print(f"\n[ATTACK GRAPH] actor={actor} nodes={n} max_node_risk={scores.max():.2f}")
-        print(f"[NEXT TARGET] {route} (model confidence {confidence:.2f})")
-        if scores.max() >= .65:
-            print("[GNN ALERT] Suspicious event chain detected; inspect this session.")
+        max_node_risk = float(scores.max())
+        report = {
+            "actor": actor,
+            "nodes": n,
+            "max_node_risk": max_node_risk,
+            "next_target": route,
+            "confidence": float(confidence),
+            "suspicious": max_node_risk >= .65,
+        }
+        reports.append(report)
+        if display:
+            print(f"\n[ATTACK GRAPH] actor={actor} nodes={n} max_node_risk={max_node_risk:.2f}")
+            print(f"[NEXT TARGET] {route} (model confidence {confidence:.2f})")
+            if report["suspicious"]:
+                print("[GNN ALERT] Suspicious event chain detected; inspect this session.")
+    return reports
 
 def main():
     parser = argparse.ArgumentParser()
