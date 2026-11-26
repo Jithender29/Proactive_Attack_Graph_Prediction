@@ -10,6 +10,7 @@ _DASHBOARD_FILE = Path(__file__).with_name("detector_dashboard.html")
 _STATE_LOCK = Lock()
 _STATE = {
     "sessions": [],
+    "history": [],
     "updated_at": None,
     "message": "Waiting for detector data.",
     "is_error": False,
@@ -20,15 +21,25 @@ def _now():
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def publish_sessions(sessions):
+def publish_sessions(sessions, history=None):
+    history = history or []
     with _STATE_LOCK:
-        previous = {session["actor"]: session for session in _STATE["sessions"]}
-        current = []
-        for session in sessions:
-            record = dict(session)
-            record["graph"] = previous.get(record["actor"], {}).get("graph")
-            current.append(record)
-        _STATE["sessions"] = current
+        previous = {
+            session.get("session_id", session["actor"]): session
+            for session in _STATE["sessions"] + _STATE["history"]
+        }
+
+        def retain_graph(records):
+            current = []
+            for session in records:
+                record = dict(session)
+                key = record.get("session_id", record["actor"])
+                record["graph"] = previous.get(key, {}).get("graph")
+                current.append(record)
+            return current
+
+        _STATE["sessions"] = retain_graph(sessions)
+        _STATE["history"] = retain_graph(history)
         _STATE["updated_at"] = _now()
 
 
@@ -36,10 +47,18 @@ def publish_graph_reports(reports):
     if not reports:
         return
     with _STATE_LOCK:
-        sessions = {session["actor"]: session for session in _STATE["sessions"]}
         for report in reports:
-            if report["actor"] in sessions:
-                sessions[report["actor"]]["graph"] = report
+            for session in _STATE["sessions"] + _STATE["history"]:
+                matches_session = (
+                    report.get("session_id") is not None
+                    and session.get("session_id") == report["session_id"]
+                )
+                matches_actor = (
+                    report.get("session_id") is None
+                    and session["actor"] == report["actor"]
+                )
+                if matches_session or matches_actor:
+                    session["graph"] = report
         _STATE["updated_at"] = _now()
 
 

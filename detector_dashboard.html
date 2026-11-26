@@ -36,6 +36,9 @@
     .stat-value { display: block; margin-top: 7px; font-size: 26px; font-weight: 700; }
     .section-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin: 0 0 14px; }
     .section-heading h2 { margin: 0; font-size: 19px; }
+    .view-switch { display: flex; gap: 8px; }
+    .view-button { border: 1px solid #34425e; border-radius: 7px; padding: 8px 12px; background: #17233a; color: #c6d0e0; cursor: pointer; font: inherit; }
+    .view-button.active { border-color: #38bdf8; color: #e0f2fe; background: #123047; }
     #sessions { display: grid; gap: 14px; }
     .session { overflow: hidden; }
     .session-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 18px 20px; border-bottom: 1px solid #26314a; }
@@ -53,6 +56,7 @@
     .arrow { color: #71819e; }
     .model-lines { display: grid; gap: 9px; color: #c6d0e0; font-size: 14px; }
     .model-lines strong { color: #fff; }
+    .prediction { padding: 10px 12px; border: 1px solid #34706e; border-radius: 8px; background: #12332f; color: #a7f3d0; font-weight: 650; }
     details { margin-top: 14px; color: #96a2b9; font-size: 13px; }
     pre { max-height: 220px; overflow: auto; padding: 12px; border-radius: 8px; background: #0b1020; color: #c6d0e0; white-space: pre-wrap; overflow-wrap: anywhere; }
     .empty { padding: 36px; border: 1px dashed #34425e; border-radius: 12px; color: #96a2b9; text-align: center; }
@@ -73,18 +77,23 @@
   </header>
   <main>
     <section class="stats" aria-label="Detector summary">
-      <div class="stat"><span class="stat-label">Tracked sessions</span><strong id="tracked" class="stat-value">0</strong></div>
+      <div class="stat"><span class="stat-label">Live sessions</span><strong id="tracked" class="stat-value">0</strong></div>
       <div class="stat"><span class="stat-label">Currently flagged</span><strong id="flagged" class="stat-value">0</strong></div>
       <div class="stat"><span class="stat-label">Last update</span><strong id="updated" class="stat-value" style="font-size:16px">—</strong></div>
     </section>
     <div class="section-heading">
-      <h2>Session analysis</h2>
-      <span class="muted">Full event history available in the route sequence</span>
+      <h2 id="session-heading">Live sessions</h2>
+      <div class="view-switch" role="tablist" aria-label="Session view">
+        <button id="live-view" class="view-button active" type="button" role="tab" aria-selected="true">Live</button>
+        <button id="history-view" class="view-button" type="button" role="tab" aria-selected="false">History</button>
+      </div>
     </div>
     <section id="sessions" aria-live="polite"></section>
   </main>
   <script>
     const sessionsElement = document.getElementById("sessions");
+    let currentView = "live";
+    let latestState = null;
 
     function element(tag, className, text) {
       const node = document.createElement(tag);
@@ -99,6 +108,7 @@
       const identity = element("div");
       identity.append(element("div", "actor", `Session: ${session.actor}`));
       identity.append(element("div", "ip", `Source IP: ${session.ip || "unknown"}`));
+      identity.append(element("div", "ip", `Last activity: ${session.last_seen_at ? new Date(session.last_seen_at).toLocaleString() : "unknown"}`));
       const badges = element("div", "badges");
       const graphAlert = Boolean(session.graph && session.graph.suspicious);
       const isAttack = Boolean(session.suspicious || graphAlert);
@@ -119,21 +129,32 @@
       session.path.forEach((event, index) => {
         if (index) path.append(element("span", "arrow", "→"));
         const failedLogin = /login/i.test(event.route) && [401, 403].includes(Number(event.status));
-        const label = `${event.method} ${event.route}${failedLogin ? ` · failed login ${event.status}` : ` · ${event.status}`}`;
-        path.append(element("span", `route${failedLogin ? " failed" : ""}`, label));
+        const adminPath = event.route.toLowerCase().split("?", 1)[0].replace(/\/+$/, "");
+        const deniedAdmin = (adminPath === "/admin" || adminPath.startsWith("/admin/")) &&
+          [401, 403].includes(Number(event.status));
+        const alertLabel = failedLogin
+          ? ` · failed login ${event.status}`
+          : deniedAdmin
+            ? ` · denied admin access ${event.status}`
+            : ` · ${event.status}`;
+        path.append(element("span", `route${failedLogin || deniedAdmin ? " failed" : ""}`, `${event.method} ${event.route}${alertLabel}`));
       });
       routes.append(path);
 
       const models = element("section");
       models.append(element("h3", "", "Model outputs"));
       const lines = element("div", "model-lines");
+      if (session.next_target) {
+        lines.append(element("div", "prediction", `Next predicted step: ${session.next_target} (${(session.next_confidence * 100).toFixed(1)}% confidence)`));
+      } else {
+        lines.append(element("div", "muted", "Next-step prediction unavailable (LSTM inference disabled or model missing)."));
+      }
       lines.append(element("div", "", `Random Forest: ${(session.probability * 100).toFixed(1)}% suspicious probability${session.rf_suspicious ? " (threshold exceeded)" : ""}`));
       (session.policy_alerts || []).forEach(alert => lines.append(element("div", "", `Policy alert: ${alert}`)));
       if (session.graph) {
         lines.append(element("div", "", `GNN: max node risk ${(session.graph.max_node_risk * 100).toFixed(1)}% across ${session.graph.nodes} nodes`));
-        lines.append(element("div", "", `LSTM next target: ${session.graph.next_target} (${(session.graph.confidence * 100).toFixed(1)}% confidence)`));
       } else {
-        lines.append(element("div", "muted", "GNN/LSTM result not available yet."));
+        lines.append(element("div", "muted", "GNN risk result not available yet."));
       }
       models.append(lines);
 
@@ -146,20 +167,50 @@
       return card;
     }
 
+    function renderCurrentView() {
+      if (!latestState) return;
+      const sessions = (currentView === "history" ? latestState.history : latestState.sessions) || [];
+      const sortedSessions = sessions.slice().sort((a, b) => Date.parse(b.last_seen_at) - Date.parse(a.last_seen_at));
+      document.getElementById("session-heading").textContent = currentView === "history" ? "Session history" : "Live sessions";
+      document.getElementById("live-view").classList.toggle("active", currentView === "live");
+      document.getElementById("live-view").setAttribute("aria-selected", currentView === "live");
+      document.getElementById("history-view").classList.toggle("active", currentView === "history");
+      document.getElementById("history-view").setAttribute("aria-selected", currentView === "history");
+      sessionsElement.replaceChildren(...sortedSessions.map(renderSession));
+      if (!sortedSessions.length) {
+        const emptyMessage = currentView === "history"
+          ? "No previous sessions yet."
+          : "Waiting for live sessions...";
+        sessionsElement.append(element("div", "empty", emptyMessage));
+      }
+    }
+
+    document.getElementById("live-view").addEventListener("click", () => {
+      currentView = "live";
+      renderCurrentView();
+    });
+    document.getElementById("history-view").addEventListener("click", () => {
+      currentView = "history";
+      renderCurrentView();
+    });
+
     async function refresh() {
       try {
         const response = await fetch("/api/state", { cache: "no-store" });
         if (!response.ok) throw new Error(`Dashboard API returned ${response.status}`);
         const state = await response.json();
         const sessions = state.sessions || [];
+        const history = state.history || [];
+        latestState = state;
         document.getElementById("tracked").textContent = sessions.length;
         document.getElementById("flagged").textContent = sessions.filter(s => s.suspicious || (s.graph && s.graph.suspicious)).length;
+        document.getElementById("live-view").textContent = `Live (${sessions.length})`;
+        document.getElementById("history-view").textContent = `History (${history.length})`;
         document.getElementById("updated").textContent = state.updated_at ? new Date(state.updated_at).toLocaleTimeString() : "—";
         const status = document.getElementById("status");
         status.textContent = state.message || "Monitoring";
         status.className = state.is_error ? "error" : "";
-        sessionsElement.replaceChildren(...sessions.map(renderSession));
-        if (!sessions.length) sessionsElement.append(element("div", "empty", "Waiting for logged sessions..."));
+        renderCurrentView();
       } catch (error) {
         const status = document.getElementById("status");
         status.textContent = `Dashboard connection error: ${error.message}`;

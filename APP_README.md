@@ -148,7 +148,7 @@ Run the detector in a separate terminal:
 python ml_detector.py
 ```
 
-It opens a local dashboard at `http://127.0.0.1:8765/` and refreshes the session results as events are analyzed. Flagged sessions display their complete recorded route sequence, Random Forest risk, and (when enabled and model files are available) GNN/LSTM results. Denied requests to `/admin` (HTTP 401/403) are flagged directly, regardless of the model score. Use `--no-graph` to disable graph and sequence inference, `--train` to retrain the Random Forest before monitoring, or `--dashboard-port 8766` to choose another local port.
+It opens a local dashboard at `http://127.0.0.1:8765/` and refreshes the session results as events are analyzed. Sessions with activity in the last five minutes appear in the Live view; older sessions are available from the History view. Both views are ordered by most recent activity. Each session displays the LSTM's next predicted route category and confidence when the LSTM model is available. Flagged sessions display their complete route sequence, Random Forest risk, and (when enabled and model files are available) GNN results. Denied requests to `/admin` (HTTP 401/403) are flagged directly, regardless of the model score. Use `--idle-timeout 10` to change the inactivity cutoff to ten minutes, `--no-graph` to disable graph and sequence inference, `--train` to retrain the Random Forest before monitoring, or `--dashboard-port 8766` to choose another local port.
 
 The dashboard server listens on the local machine only. Start the storefront with `python run.py` in another terminal to generate live events.
 
