@@ -140,6 +140,20 @@ To isolate project dependencies:
 
 ---
 
+## 🛡️ Live Attack Detector
+
+Run the detector in a separate terminal:
+
+```powershell
+python ml_detector.py
+```
+
+It opens a local dashboard at `http://127.0.0.1:8765/` and refreshes the session results as events are analyzed. Flagged sessions display their complete recorded route sequence, Random Forest risk, and (when enabled and model files are available) GNN/LSTM results. Denied requests to `/admin` (HTTP 401/403) are flagged directly, regardless of the model score. Use `--no-graph` to disable graph and sequence inference, `--train` to retrain the Random Forest before monitoring, or `--dashboard-port 8766` to choose another local port.
+
+The dashboard server listens on the local machine only. Start the storefront with `python run.py` in another terminal to generate live events.
+
+---
+
 ## 🔑 Demo Credentials
 
 | Role | Username | Password | Access Privileges |
