@@ -55,31 +55,34 @@ def main():
     model = load_model()
     print(f"[MONITOR] Database={args.db}; terminal-only alerts; Ctrl+C to stop.")
     seen_alerts = set()
-    while True:
-        rows = read_events(args.db, limit=2000)
-        for actor, ip, feats, events in aggregate_sessions(rows):
-            prob, suspicious = predict_session(model, feats)
-            last_ts = event_value(events[-1], "timestamp", default="")
-            key = (actor, last_ts)
-            if suspicious and key not in seen_alerts:
-                seen_alerts.add(key)
-                print("\n" + "!" * 68)
-                print(f"[RANDOM FOREST ALERT] suspicious_probability={prob:.2f}")
-                print(f"Attacker/session identifier: {actor}")
-                print(f"Source IP: {ip}")
-                print(f"Recent route: {event_value(events[-1], 'route', 'path', default='unknown')}")
-                print("Reasons/features:", feats)
-                print("!" * 68)
-        if not args.no_graph and rows and Path("models/gnn_model.pt").exists() and Path("models/lstm_model.pt").exists():
-            # Run graph/sequence analysis only when the latest event changes.
-            latest = str(rows[-1].get("timestamp", ""))
-            if latest and latest not in seen_alerts:
-                try:
-                    monitor_graph_and_sequence(rows[-300:])
-                except Exception as exc:
-                    print(f"[GNN/LSTM] inference skipped: {exc}")
-                seen_alerts.add(latest)
-        time.sleep(max(2, args.poll))
+    try:
+        while True:
+            rows = read_events(args.db, limit=2000)
+            for actor, ip, feats, events in aggregate_sessions(rows):
+                prob, suspicious = predict_session(model, feats)
+                last_ts = event_value(events[-1], "timestamp", default="")
+                key = (actor, last_ts)
+                if suspicious and key not in seen_alerts:
+                    seen_alerts.add(key)
+                    print("\n" + "!" * 68)
+                    print(f"[RANDOM FOREST ALERT] suspicious_probability={prob:.2f}")
+                    print(f"Attacker/session identifier: {actor}")
+                    print(f"Source IP: {ip}")
+                    print(f"Recent route: {event_value(events[-1], 'route', 'path', default='unknown')}")
+                    print("Reasons/features:", feats)
+                    print("!" * 68)
+            if not args.no_graph and rows and Path("models/gnn_model.pt").exists() and Path("models/lstm_model.pt").exists():
+                # Run graph/sequence analysis only when the latest event changes.
+                latest = str(rows[-1].get("timestamp", ""))
+                if latest and latest not in seen_alerts:
+                    try:
+                        monitor_graph_and_sequence(rows[-300:])
+                    except Exception as exc:
+                        print(f"[GNN/LSTM] inference skipped: {exc}")
+                    seen_alerts.add(latest)
+            time.sleep(max(2, args.poll))
+    except KeyboardInterrupt:
+        print("\n[MONITOR] Stopped by user.")
 
 if __name__ == "__main__":
     main()
