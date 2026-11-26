@@ -3,7 +3,7 @@ from sqlalchemy import (Column, Integer, String, Float, Boolean,
                         ForeignKey, DateTime, Text, create_engine)
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 import datetime
-
+import sqlite3
 BASE_DIR = Path(__file__).parent.parent
 SQLITE_PATH = BASE_DIR / "store.db"
 
@@ -55,5 +55,20 @@ class OrderItem(Base):
     product = relationship("Product")
 
 def init_db():
-    """Create tables if they do not exist."""
+    """Create application tables and security event table."""
     Base.metadata.create_all(bind=engine)
+
+    with sqlite3.connect(str(SQLITE_PATH)) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                method TEXT,
+                route TEXT,
+                status_code INTEGER,
+                ip TEXT,
+                session_fingerprint TEXT,
+                duration_ms REAL
+            )
+        """)
+        conn.commit()
